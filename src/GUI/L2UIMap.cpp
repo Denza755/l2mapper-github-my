@@ -69,39 +69,33 @@ void L2UIMap::Init()
 
 	ui_mapTiles = new MyGUI::ImageBox * *[MAP_TILES_X];
 	tileStates = new int16 * [MAP_TILES_X];
-	for (int x = 0; x < MAP_TILES_X; x++) // <--- Начинаем с 0 вместо 10
+
+	for (int x = 0; x < MAP_TILES_X; x++)
 	{
 		ui_mapTiles[x] = new MyGUI::ImageBox * [MAP_TILES_Y];
 		memset(ui_mapTiles[x], 0, MAP_TILES_Y * sizeof(MyGUI::ImageBox*));
 		tileStates[x] = new int16[MAP_TILES_Y];
 		memset(tileStates[x], 0, MAP_TILES_Y * sizeof(int16));
-		for (int y = 0; y < MAP_TILES_Y; y++) // <--- Начинаем с 0 вместо 10
+		for (int y = 0; y < MAP_TILES_Y; y++)
 		{
-			sprintf(buf, "%d_%d", x, y);
+			// МЫ УБРАЛИ ПРОВЕРКУ ЗДЕСЬ, ЧТОБЫ СЕТКА РИСОВАЛАСЬ ВСЕГДА
+			float tileWidth = 164;
+			float tileHeight = 162;
+			MyGUI::ImageBox* ui_mapTile_temp = ui_mapView->createWidget<MyGUI::ImageBox>("ImageBox", 820 + (x - 15) * tileWidth, 2440 + (y - 25) * tileHeight, tileWidth, tileHeight, MyGUI::Align::Default);
 
-			// Наша абсолютная файловая система теперь работает, 
-			// поэтому возвращаем штатную проверку наличия .unr файла карты!
-			if (UPackageMgr.GetUPackage(buf))
-			{
-				float tileWidth = 164;
-				float tileHeight = 162;
-				MyGUI::ImageBox* ui_mapTile_temp = ui_mapView->createWidget<MyGUI::ImageBox>("ImageBox", 820 + (x - 15) * tileWidth, 2440 + (y - 25) * tileHeight, tileWidth, tileHeight, MyGUI::Align::Default);
+			tbuf = new char[3];
+			sprintf(tbuf, "%d", x);
+			ui_mapTile_temp->setUserString("map_x", tbuf);
+			tbuf = new char[3];
+			sprintf(tbuf, "%d", y);
+			ui_mapTile_temp->setUserString("map_y", tbuf);
+			ui_mapTile_temp->eventMouseButtonPressed += MyGUI::newDelegate(this, &L2UIMap::onMapMouseDown);
+			ui_mapTile_temp->eventMouseButtonReleased += MyGUI::newDelegate(this, &L2UIMap::onMapMouseUp);
 
-				tbuf = new char[3];
-				sprintf(tbuf, "%d", x);
-				ui_mapTile_temp->setUserString("map_x", tbuf);
-				tbuf = new char[3];
-				sprintf(tbuf, "%d", y);
-				ui_mapTile_temp->setUserString("map_y", tbuf);
-				ui_mapTile_temp->eventMouseButtonPressed += MyGUI::newDelegate(this, &L2UIMap::onMapMouseDown);
-				ui_mapTile_temp->eventMouseButtonReleased += MyGUI::newDelegate(this, &L2UIMap::onMapMouseUp);
-
-				ui_mapTiles[x][y] = ui_mapTile_temp;
-				setTileState(x, y, 0);
-			}
+			ui_mapTiles[x][y] = ui_mapTile_temp;
+			setTileState(x, y, 0);
 		}
 	}
-
 
 	ui_mapTileLoad = ui_mapWnd->createWidget<MyGUI::Button>("Button", 220, 320, 120, 30, MyGUI::Align::Right | MyGUI::Align::Bottom, "MapTileLoad");
 	ui_mapTileLoad->setCaption(L"Load");
@@ -188,25 +182,26 @@ void L2UIMap::onMapMouseUp(MyGUI::Widget* sender, int x, int y, MyGUI::MouseButt
 
 void L2UIMap::onMapMouseClick(MyGUI::Widget* sender, MyGUI::MouseButton btn)
 {
-	if(btn == MyGUI::MouseButton::Left)
+	if (btn == MyGUI::MouseButton::Left)
 	{
-		if(sender && sender->isType<MyGUI::ImageBox>() && sender != ui_map)
+		if (sender && sender->isType<MyGUI::ImageBox>() && sender != ui_map)
 		{
 			int16 map_x = atoi(sender->castType<MyGUI::ImageBox>()->getUserStrings().at("map_x").c_str());
 			int16 map_y = atoi(sender->castType<MyGUI::ImageBox>()->getUserStrings().at("map_y").c_str());
 
-			for(uint16 x = 10; x < MAP_TILES_X; x++)
+			// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Циклы сброса выделения должны начинаться с 0, а не с 10
+			for (uint16 x = 0; x < MAP_TILES_X; x++)
 			{
-				for(uint16 y = 10; y < MAP_TILES_Y; y++)
+				for (uint16 y = 0; y < MAP_TILES_Y; y++)
 				{
-					if(!(x == map_x && map_y == y))
+					if (!(x == map_x && map_y == y))
 						setTileState(x, y, getTileState(x, y) & ~L2UIMTS_SELECTED);
 				}
 			}
 
 			int16 tileState = getTileState(map_x, map_y);
 
-			if(tileState & L2UIMTS_SELECTED)
+			if (tileState & L2UIMTS_SELECTED)
 				setTileState(map_x, map_y, tileState & ~L2UIMTS_SELECTED);
 			else
 				setTileState(map_x, map_y, tileState | L2UIMTS_SELECTED);
@@ -214,28 +209,36 @@ void L2UIMap::onMapMouseClick(MyGUI::Widget* sender, MyGUI::MouseButton btn)
 			bool nonloadedTileSelected = false;
 			bool activeTileSelected = false;
 
-			for(uint16 x = 10; x < MAP_TILES_X; x++)
+			// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Циклы проверки состояний также должны начинаться с 0
+			for (uint16 x = 0; x < MAP_TILES_X; x++)
 			{
-				for(uint16 y = 10; y < MAP_TILES_Y; y++)
+				for (uint16 y = 0; y < MAP_TILES_Y; y++)
 				{
 					uint16 tileState = getTileState(x, y);
-					if((tileState & L2UIMTS_SELECTED) && !(tileState & L2UIMTS_ACTIVE))
+					if ((tileState & L2UIMTS_SELECTED) && !(tileState & L2UIMTS_ACTIVE))
 					{
 						nonloadedTileSelected = true;
 					}
-					if((tileState & L2UIMTS_SELECTED) && (tileState & L2UIMTS_ACTIVE))
+					if ((tileState & L2UIMTS_SELECTED) && (tileState & L2UIMTS_ACTIVE))
 					{
 						activeTileSelected = true;
 					}
 				}
 			}
 
-			if(nonloadedTileSelected)
+			// ИСПРАВЛЕНИЕ: Проверяем, существует ли файл .unr для выбранного сектора в памяти программы.
+			// Выделяем безопасный буфер размера 64 байта под строку "X_Y", чтобы избежать переполнения.
+			char sbuf[64];
+			sprintf(sbuf, "%d_%d", map_x, map_y);
+			bool fileExists = (UPackageMgr.GetUPackage(sbuf) != nullptr);
+
+			// Кнопка Load станет доступна только тогда, когда тайл выбран и файл физически найден менеджером пакетов
+			if (nonloadedTileSelected && fileExists)
 				ui_mapTileLoad->setEnabled(true);
 			else
 				ui_mapTileLoad->setEnabled(false);
 
-			if(activeTileSelected)
+			if (activeTileSelected)
 				ui_mapTileHide->setEnabled(true);
 			else
 				ui_mapTileHide->setEnabled(false);
@@ -247,7 +250,7 @@ void L2UIMap::onMapMouseClick(MyGUI::Widget* sender, MyGUI::MouseButton btn)
 			setVisible(false);*/
 		}
 	}
-	else if(btn == MyGUI::MouseButton::Right)
+	else if (btn == MyGUI::MouseButton::Right)
 	{
 		/*if(sender->isType<MyGUI::ImageBox>())
 		{
@@ -257,6 +260,7 @@ void L2UIMap::onMapMouseClick(MyGUI::Widget* sender, MyGUI::MouseButton btn)
 		}*/
 	}
 }
+
 
 void L2UIMap::onMapWindowClose(MyGUI::Window* sender, const std::string& evt)
 {
