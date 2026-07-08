@@ -32,6 +32,8 @@ void L2UIMap::Init()
 
 	char buf[256];
 	char *tbuf;
+
+/*
 	ui_mapTiles = new MyGUI::ImageBox**[MAP_TILES_X];
 	tileStates = new int16*[MAP_TILES_X];
 	for(int x = 10; x < 30; x++)
@@ -43,8 +45,8 @@ void L2UIMap::Init()
 		for(int y = 10; y < MAP_TILES_Y; y++)
 		{
 			sprintf(buf, "%d_%d", x, y);
-			if(UPackageMgr.GetUPackage(buf))
-			{
+			//if(UPackageMgr.GetUPackage(buf))
+			//{
 				float tileWidth = 164;
 				float tileHeight = 162;
 				MyGUI::ImageBox *ui_mapTile_temp = ui_mapView->createWidget<MyGUI::ImageBox>("ImageBox", 820 + (x - 15) * tileWidth, 2440 + (y - 25) * tileHeight, tileWidth, tileHeight, MyGUI::Align::Default);
@@ -60,9 +62,46 @@ void L2UIMap::Init()
 				//ui_mapTile_temp->eventMouseButtonClick += MyGUI::newDelegate(this, &L2UIMap::onMapMouseClick);
 				ui_mapTiles[x][y] = ui_mapTile_temp;
 				setTileState(x, y, 0);
+			//}
+		}
+	}
+*/
+
+	ui_mapTiles = new MyGUI::ImageBox * *[MAP_TILES_X];
+	tileStates = new int16 * [MAP_TILES_X];
+	for (int x = 0; x < MAP_TILES_X; x++) // <--- Начинаем с 0 вместо 10
+	{
+		ui_mapTiles[x] = new MyGUI::ImageBox * [MAP_TILES_Y];
+		memset(ui_mapTiles[x], 0, MAP_TILES_Y * sizeof(MyGUI::ImageBox*));
+		tileStates[x] = new int16[MAP_TILES_Y];
+		memset(tileStates[x], 0, MAP_TILES_Y * sizeof(int16));
+		for (int y = 0; y < MAP_TILES_Y; y++) // <--- Начинаем с 0 вместо 10
+		{
+			sprintf(buf, "%d_%d", x, y);
+
+			// Наша абсолютная файловая система теперь работает, 
+			// поэтому возвращаем штатную проверку наличия .unr файла карты!
+			if (UPackageMgr.GetUPackage(buf))
+			{
+				float tileWidth = 164;
+				float tileHeight = 162;
+				MyGUI::ImageBox* ui_mapTile_temp = ui_mapView->createWidget<MyGUI::ImageBox>("ImageBox", 820 + (x - 15) * tileWidth, 2440 + (y - 25) * tileHeight, tileWidth, tileHeight, MyGUI::Align::Default);
+
+				tbuf = new char[3];
+				sprintf(tbuf, "%d", x);
+				ui_mapTile_temp->setUserString("map_x", tbuf);
+				tbuf = new char[3];
+				sprintf(tbuf, "%d", y);
+				ui_mapTile_temp->setUserString("map_y", tbuf);
+				ui_mapTile_temp->eventMouseButtonPressed += MyGUI::newDelegate(this, &L2UIMap::onMapMouseDown);
+				ui_mapTile_temp->eventMouseButtonReleased += MyGUI::newDelegate(this, &L2UIMap::onMapMouseUp);
+
+				ui_mapTiles[x][y] = ui_mapTile_temp;
+				setTileState(x, y, 0);
 			}
 		}
 	}
+
 
 	ui_mapTileLoad = ui_mapWnd->createWidget<MyGUI::Button>("Button", 220, 320, 120, 30, MyGUI::Align::Right | MyGUI::Align::Bottom, "MapTileLoad");
 	ui_mapTileLoad->setCaption(L"Load");
@@ -284,12 +323,13 @@ void L2UIMap::setTileState(int x, int y, int16 state)
 {
 	tileStates[x][y] = state;
 
-	if(!ui_mapTiles[x][y])
+	// ЗАЩИТА: Если массив или конкретная плитка не созданы, выходим из функции
+	if (!ui_mapTiles || !ui_mapTiles[x] || !ui_mapTiles[x][y])
 		return;
 
-	if(state & L2UIMTS_ACTIVE)
+	if (state & L2UIMTS_ACTIVE)
 	{
-		if(state & L2UIMTS_SELECTED)
+		if (state & L2UIMTS_SELECTED)
 		{
 			ui_mapTiles[x][y]->setImageTexture("textures/mapTile_selected.png");
 		}
@@ -298,9 +338,9 @@ void L2UIMap::setTileState(int x, int y, int16 state)
 			ui_mapTiles[x][y]->setImageTexture("textures/mapTile_active.png");
 		}
 	}
-	else if(state & L2UIMTS_LOADED)
+	else if (state & L2UIMTS_LOADED)
 	{
-		if(state & L2UIMTS_SELECTED)
+		if (state & L2UIMTS_SELECTED)
 		{
 			ui_mapTiles[x][y]->setImageTexture("textures/mapTile_selected.png");
 		}
@@ -311,13 +351,14 @@ void L2UIMap::setTileState(int x, int y, int16 state)
 	}
 	else
 	{
-		if(state & L2UIMTS_SELECTED)
+		if (state & L2UIMTS_SELECTED)
 		{
 			ui_mapTiles[x][y]->setImageTexture("textures/mapTile_selected.png");
 		}
 		else
 		{
-			ui_mapTiles[x][y]->setImageTexture("textures/mapTile.png");
+			// Вместо падения просто очищаем текстуру или скрываем её, если она не активна
+			ui_mapTiles[x][y]->setImageTexture("");
 		}
 	}
 }

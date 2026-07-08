@@ -15,8 +15,8 @@ UPackageManager::~UPackageManager(void)
 
 struct UnrealPath
 {
-	char*	Path;
-	char*	Ext;
+	char* Path;
+	char* Ext;
 };
 
 UnrealPath Paths[] = {
@@ -31,9 +31,12 @@ UnrealPath Paths[] = {
 	{ 0, 0 }
 };
 
-void UPackageManager::Init(char *BaseDir)
+void UPackageManager::Init(char* BaseDir)
 {
-	m_BaseDir = UTIL_CopyString(BaseDir);
+	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Игнорируем относительный BaseDir, который передает программа,
+	// и жестко задаем абсолютный путь к корню вашей папки с игрой.
+	// Обязательно используем прямые слэши '/' и закрывающий слэш в конце.
+	m_BaseDir = UTIL_CopyString("G:/!!!_L2_Clients/542/l2mapper-0.7/");
 
 	Objects._size = 0;
 
@@ -44,20 +47,20 @@ void UPackageManager::Init(char *BaseDir)
 	char ExtStr[CM_SYSTEM_MAXNAME];
 	char FileStr[CM_SYSTEM_MAXNAME];
 
-	UPackage *Package;
+	UPackage* Package;
 
-	for(UnrealPath *Path = Paths; Path->Path; Path++)
+	for (UnrealPath* Path = Paths; Path->Path; Path++)
 	{
 		sprintf(PathStr, "%s%s/", m_BaseDir, Path->Path);
 		sprintf(ExtStr, "*.%s", Path->Ext);
-		jfArray<char *, uint32> Files = *(UTIL_FindFiles(PathStr, ExtStr));
+		jfArray<char*, uint32> Files = *(UTIL_FindFiles(PathStr, ExtStr));
 
-		if(Files.Size() > 0)
+		if (Files.Size() > 0)
 			Packages.realloc(Packages.Size() + Files.Size());
 
-		for(uint32 i = 0; i < Files.Size(); i++)
+		for (uint32 i = 0; i < Files.Size(); i++)
 		{
-			
+
 			Package = new UPackage();
 			Package->PkgMgr = this;
 			sprintf(FileStr, "%s%s", PathStr, Files[i]);
@@ -67,13 +70,13 @@ void UPackageManager::Init(char *BaseDir)
 	}
 }
 
-UPackage *UPackageManager::GetUPackage(char *name)
+UPackage* UPackageManager::GetUPackage(char* name)
 {
-	for(uint32 i = 0; i < Packages.Size(); i++)
+	for (uint32 i = 0; i < Packages.Size(); i++)
 	{
-		if(UTIL_strcmpi(Packages[i]->Name(), name) == 0)
+		if (UTIL_strcmpi(Packages[i]->Name(), name) == 0)
 		{
-			if(!Packages[i]->InLoaded())
+			if (!Packages[i]->InLoaded())
 			{
 				printf("Loading %s\n", Packages[i]->m_FileAddr);
 				Packages[i]->Load();
@@ -86,10 +89,10 @@ UPackage *UPackageManager::GetUPackage(char *name)
 	return 0;
 }
 
-UObject *UPackageManager::GetUObject(char *name)
+UObject* UPackageManager::GetUObject(char* name)
 {
-	char *tname = UTIL_CopyString(name);
-	char *ObjectAbsoluteName = UTIL_CopyString(name);
+	char* tname = UTIL_CopyString(name);
+	char* ObjectAbsoluteName = UTIL_CopyString(name);
 	uint32 Hash = MakeHash(tname);
 	//if(Objects[Hash] != 0)
 	//	return Objects[Hash];
@@ -104,12 +107,12 @@ UObject *UPackageManager::GetUObject(char *name)
 			return Objects[i];
 	}*/
 
-	char *PackageName = tname;
-	char *ObjectName = tname;
+	char* PackageName = tname;
+	char* ObjectName = tname;
 
-	for(uint16 i = 0; i < strlen(tname); i++)
+	for (uint16 i = 0; i < strlen(tname); i++)
 	{
-		if(tname[i] == '.')
+		if (tname[i] == '.')
 		{
 			tname[i] = 0;
 			ObjectName = tname + (i + 1);
@@ -117,21 +120,21 @@ UObject *UPackageManager::GetUObject(char *name)
 		}
 	}
 
-	for(uint32 i = 0; i < Packages.Size(); i++)
+	for (uint32 i = 0; i < Packages.Size(); i++)
 	{
-		UPackage *pkg = Packages[i];
-		if(UTIL_strcmpi(pkg->Name(), PackageName) == 0)
+		UPackage* pkg = Packages[i];
+		if (UTIL_strcmpi(pkg->Name(), PackageName) == 0)
 		{
-			if(!pkg->InLoaded())
+			if (!pkg->InLoaded())
 			{
 				printf("Loading %s\n", pkg->m_FileAddr);
 				pkg->Load();
 			}
 
-			UObject *Result = 0;
+			UObject* Result = 0;
 
 			Result = pkg->GetUObject(ObjectName);
-			
+
 			//Objects[Hash] = Result;
 			/*if(Result != 0)
 			{
@@ -147,18 +150,18 @@ UObject *UPackageManager::GetUObject(char *name)
 	return 0;
 }
 
-ULevel *UPackageManager::GetULevel(char *name)
+ULevel* UPackageManager::GetULevel(char* name)
 {
-	ULevel *Result = 0;
+	ULevel* Result = 0;
 
-	UPackage *LevelPkg = GetUPackage(name);
+	UPackage* LevelPkg = GetUPackage(name);
 
-	if(!LevelPkg)
+	if (!LevelPkg)
 		return Result;
 
-	for(uint32 i = 0; i < LevelPkg->Exports.Size(); i++)
+	for (uint32 i = 0; i < LevelPkg->Exports.Size(); i++)
 	{
-		if(UTIL_strcmpi(LevelPkg->Exports[i].BaseClass, "Level") == 0)
+		if (UTIL_strcmpi(LevelPkg->Exports[i].BaseClass, "Level") == 0)
 		{
 			Result = (ULevel*)LevelPkg->GetUObject(LevelPkg->Exports[i].Name);
 			break;
@@ -168,7 +171,7 @@ ULevel *UPackageManager::GetULevel(char *name)
 	return Result;
 }
 
-uint32 UPackageManager::MakeHash(char *Name)
+uint32 UPackageManager::MakeHash(char* Name)
 {
 	uint64 Hash = 57821394;
 	uint64 Len = strlen(Name);
