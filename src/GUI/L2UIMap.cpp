@@ -317,29 +317,29 @@ void L2UIMap::setTileState(int x, int y, int16 state)
 		{
 			if (state & L2UIMTS_SELECTED)
 			{
-				ui_mapTiles[x][y]->setImageTexture("G:/!!!_L2_Clients/542/l2mapper-0.7/build/textures/mapTile_selected.png");
+				ui_mapTiles[x][y]->setImageTexture("../Textures/mapTile_selected.png");
 			}
 			else
 			{
-				ui_mapTiles[x][y]->setImageTexture("G:/!!!_L2_Clients/542/l2mapper-0.7/build/textures/mapTile_active.png");
+				ui_mapTiles[x][y]->setImageTexture("../Textures/mapTile_active.png");
 			}
 		}
 		else if (state & L2UIMTS_LOADED)
 		{
 			if (state & L2UIMTS_SELECTED)
 			{
-				ui_mapTiles[x][y]->setImageTexture("G:/!!!_L2_Clients/542/l2mapper-0.7/build/textures/mapTile_selected.png");
+				ui_mapTiles[x][y]->setImageTexture("../Textures/mapTile_selected.png");
 			}
 			else
 			{
-				ui_mapTiles[x][y]->setImageTexture("G:/!!!_L2_Clients/542/l2mapper-0.7/build/textures/mapTile_loaded.png");
+				ui_mapTiles[x][y]->setImageTexture("../Textures/mapTile_loaded.png");
 			}
 		}
 		else
 		{
 			if (state & L2UIMTS_SELECTED)
 			{
-				ui_mapTiles[x][y]->setImageTexture("G:/!!!_L2_Clients/542/l2mapper-0.7/build/textures/mapTile_selected.png");
+				ui_mapTiles[x][y]->setImageTexture("../Textures/mapTile_selected.png");
 			}
 			else
 			{

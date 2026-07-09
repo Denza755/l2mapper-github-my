@@ -46,7 +46,9 @@ void L2UIEditor::Init()
 
 	ui_comboMaps->setCaption(L"Выберите карту...");
 
-	ui_comboMaps->eventComboAccept += MyGUI::newDelegate(this, &L2UIEditor::onComboMapAccept);
+	//ui_comboMaps->eventComboAccept += MyGUI::newDelegate(this, &L2UIEditor::onComboMapAccept);
+	ui_comboMaps->eventComboChangePosition += MyGUI::newDelegate(this, &L2UIEditor::onComboMapAccept);
+
 
 /*
 	// Наполнение списка именами файлов из зарегистрированных в UPackageManager пакетов
@@ -153,22 +155,32 @@ void L2UIEditor::onComboMapAccept(MyGUI::ComboBox* _sender, size_t _index)
 
 	int map_x = 0;
 	int map_y = 0;
-	// Разбиваем строку "X_Y" на две числовые координаты
 	if (sscanf(mapName.c_str(), "%d_%d", &map_x, &map_y) == 2)
 	{
 		// 1. Предварительно подгружаем геодату высот для выбранного сектора
 		g_geo.Load(map_x, map_y);
 
-		// 2. Включаем стандартную заставку экрана загрузки утилиты
-		g_ui.getL2BusyScreen()->setMessage(L"Loading selected map scene...");
+		// 2. Включаем стандартный экран ожидания утилиты
+		g_ui.getL2BusyScreen()->setMessage(L"Loading map from quick menu...");
 		g_ui.getL2BusyScreen()->setVisible(true);
 
-		// 3. ПРЯМОЙ ВЫЗОВ: Загружаем сектор напрямую по числовым координатам X и Y.
-		// Метод loadLevel сам выполнит чтение пакета и рендеринг статик-мешей.
-		g_levelMgr.loadLevel(map_x, map_y);
+		// 3. Формируем массив структуры тайлов, который требует оригинальный рендерер l2mapper
+		jfArray<L2MapTileInfo*, uint16>* tiles = new jfArray<L2MapTileInfo*, uint16>();
+		L2MapTileInfo* tileInfo = new L2MapTileInfo();
+		tileInfo->map_x = map_x;
+		tileInfo->map_y = map_y;
+		tiles->add(tileInfo);
 
-		// 4. Отключаем окно ожидания, так как загрузка завершена
-		g_ui.getL2BusyScreen()->setVisible(false);
+		// 4. Запускаем пакетную инициализацию уровня, шейдеров и текстур
+		g_levelMgr.loadTiles(tiles);
+
+		// 5. Перемещаем камеру в геометрический центр загруженного сектора.
+		// Формула переводит индексы квадратов Lineage II в масштаб Unreal Engine 2
+		_vector3 newCamPos;
+		newCamPos.x = (float)(map_x - 20) * 32768.0f + 16384.0f;
+		newCamPos.y = (float)(map_y - 18) * 32768.0f + 16384.0f;
+		newCamPos.z = 5000.0f; // Оптимальная высота, чтобы увидеть землю сверху
+		//g_camera.setPos(newCamPos);
 	}
 }
 
