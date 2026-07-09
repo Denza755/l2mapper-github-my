@@ -10,6 +10,7 @@ L2UIEditor::L2UIEditor()
 {
 }
 
+
 L2UIEditor::~L2UIEditor()
 {
 }
@@ -45,6 +46,9 @@ void L2UIEditor::Init()
 
 	ui_comboMaps->setCaption(L"Выберите карту...");
 
+	ui_comboMaps->eventComboAccept += MyGUI::newDelegate(this, &L2UIEditor::onComboMapAccept);
+
+/*
 	// Наполнение списка именами файлов из зарегистрированных в UPackageManager пакетов
 	for (uint32 i = 0; i < UPackageMgr.Packages.Size(); i++)
 	{
@@ -55,6 +59,7 @@ void L2UIEditor::Init()
 			ui_comboMaps->addItem(UPackageMgr.Packages[i]->Name());
 		}
 	}
+*/
 
 /*
 	// ИСПРАВЛЕНИЕ: Прямое обращение через точку к глобальному объекту UPackageMgr
@@ -70,7 +75,7 @@ void L2UIEditor::Init()
 
 
 	// Привязка события выбора карты к нашему новому методу
-	ui_comboMaps->eventComboAccept += MyGUI::newDelegate(this, &L2UIEditor::onComboMapAccept);
+	//ui_comboMaps->eventComboAccept += MyGUI::newDelegate(this, &L2UIEditor::onComboMapAccept);
 
 	/*ui_propertyPanel = mGUI->createWidget<MyGUI::TabControl>("TabControl", 0, 24, 300, 500, MyGUI::Align::Default, "Main", "PropertyPanel");
 	//ui_propertyPanel->setAlign(MyGUI::Align::Right | MyGUI::Align::VStretch);
@@ -112,11 +117,17 @@ void L2UIEditor::Init()
 	g_main.ui_propertyPanel->setVisible(true);*/
 }
 
-void L2UIEditor::update()
-{
-	//
+void L2UIEditor::update() {
+	// Динамическое наполнение при заполнении UPackageMgr
+	if (ui_comboMaps != nullptr && ui_comboMaps->getItemCount() == 0 && UPackageMgr.Packages.Size() > 0) {
+		for (uint32 i = 0; i < UPackageMgr.Packages.Size(); i++) {
+			std::string fileAddr = UPackageMgr.Packages[i]->m_FileAddr;
+			if (fileAddr.find("Maps") != std::string::npos || fileAddr.find("maps") != std::string::npos) {
+				ui_comboMaps->addItem(UPackageMgr.Packages[i]->Name());
+			}
+		}
+	}
 }
-
 bool L2UIEditor::injectMouseDown(int x, int y, MyGUI::MouseButton btn)
 {
 	return false;
@@ -137,28 +148,27 @@ void L2UIEditor::onComboMapAccept(MyGUI::ComboBox* _sender, size_t _index)
 {
 	if (_index == MyGUI::ITEM_NONE) return;
 
+	// Извлекаем строковое имя выбранной карты (например, "19_14")
 	std::string mapName = _sender->getItemNameAt(_index);
 
 	int map_x = 0;
 	int map_y = 0;
-	// Депарсим текстовое имя вида "22_22" в чистые координаты секторов
+	// Разбиваем строку "X_Y" на две числовые координаты
 	if (sscanf(mapName.c_str(), "%d_%d", &map_x, &map_y) == 2)
 	{
-		jfArray<L2MapTileInfo*, uint16>* tiles = new jfArray<L2MapTileInfo*, uint16>();
-		L2MapTileInfo* tileInfo = new L2MapTileInfo();
-		tileInfo->map_x = map_x;
-		tileInfo->map_y = map_y;
-		tiles->add(tileInfo);
-
-		// Загружаем сетку геодаты
+		// 1. Предварительно подгружаем геодату высот для выбранного сектора
 		g_geo.Load(map_x, map_y);
 
-		// Вызываем стандартный экран ожидания загрузки
-		g_ui.getL2BusyScreen()->setMessage(L"Loading map from quick menu...");
+		// 2. Включаем стандартную заставку экрана загрузки утилиты
+		g_ui.getL2BusyScreen()->setMessage(L"Loading selected map scene...");
 		g_ui.getL2BusyScreen()->setVisible(true);
 
-		// Передаем команду на пересборку 3D-мира
-		g_levelMgr.loadTiles(tiles);
+		// 3. ПРЯМОЙ ВЫЗОВ: Загружаем сектор напрямую по числовым координатам X и Y.
+		// Метод loadLevel сам выполнит чтение пакета и рендеринг статик-мешей.
+		g_levelMgr.loadLevel(map_x, map_y);
+
+		// 4. Отключаем окно ожидания, так как загрузка завершена
+		g_ui.getL2BusyScreen()->setVisible(false);
 	}
 }
 
