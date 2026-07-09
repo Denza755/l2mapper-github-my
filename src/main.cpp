@@ -1,5 +1,7 @@
 #include "main.h"
 
+#include "GUI/L2UIEditor.h"
+
 //FGlobalMath	GMath;
 
 UStaticMeshActor* targetActor = 0;
@@ -69,11 +71,34 @@ void main::MainLoop()
 
 	// ИСПРАВЛЕНИЕ: Вывод координат камеры l2mapper для телепортации в игру
 	char coordsBuf[256];
+
+	char mapNameClean[64] = "None"; // Базовое имя по умолчанию
+
+	// Безопасно проверяем указатели интерфейса
+	if (g_ui.getL2Editor() != nullptr)
+	{
+		// Переносим имя карты в безопасный статический буфер char
+		std::string activeMap = g_ui.getL2Editor()->currentLoadedMapName;
+		if (!activeMap.empty())
+		{
+			strncpy(mapNameClean, activeMap.c_str(), sizeof(mapNameClean) - 1);
+		}
+	}
+
+/*
+	// Безопасно вытягиваем имя карты из виджета редактора через глобальный объект g_ui
+	if (g_ui.getL2Editor() != nullptr)
+	{
+		activeMap = g_ui.getL2Editor()->currentLoadedMapName;
+	}
+*/
 	// g_camera.getPos() возвращает вектор положения (x, y, z)
-	sprintf(coordsBuf, "L2 Content Editor v0.1 | X: %.0f | Y: %.0f | Z: %.0f",
+	sprintf(coordsBuf, "L2Kael.com MapViewer  X: %.0f  Y: %.0f  Z: %.0f  [ %s ]",
+		//activeMap.c_str(),
 		g_camera.getPos().x,
+		g_camera.getPos().z,
 		g_camera.getPos().y,
-		g_camera.getPos().z);
+		mapNameClean);
 
 	// Обновляем текст в заголовке окна программы
 	SetWindowTextA(g_window.getHWND(), coordsBuf);

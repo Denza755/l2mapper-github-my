@@ -157,6 +157,10 @@ void L2UIEditor::onComboMapAccept(MyGUI::ComboBox* _sender, size_t _index)
 	int map_y = 0;
 	if (sscanf(mapName.c_str(), "%d_%d", &map_x, &map_y) == 2)
 	{
+
+		// Сохраняем имя файла (дописываем расширение .unr для наглядности)
+		currentLoadedMapName = mapName + ".unr";
+
 		// 1. Предварительно подгружаем геодату высот для выбранного сектора
 		g_geo.Load(map_x, map_y);
 

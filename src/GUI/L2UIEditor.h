@@ -19,6 +19,8 @@ public:
 	// ИСПРАВЛЕНИЕ: Новый метод-делегат обработки выбора карты из списка
 	void onComboMapAccept(MyGUI::ComboBox* _sender, size_t _index);
 
+	std::string currentLoadedMapName = "None";
+
 protected:
 	MyGUI::MenuBarPtr ui_topMenu;
 	MyGUI::ImageBox* ui_leftPanel;

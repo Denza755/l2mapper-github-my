@@ -39,7 +39,8 @@ UnrealPath Paths[] = {
 void UPackageManager::Init(char* BaseDir)
 {
 	// ИСПРАВЛЕНИЕ: Жестко заданный абсолютный путь к корню вашей папки с игрой
-	m_BaseDir = UTIL_CopyString("G:/!!!_L2_Clients/542/l2mapper-0.7/");
+	//m_BaseDir = UTIL_CopyString("G:/!!!_L2_Clients/542/l2mapper-0.7/");
+	m_BaseDir = UTIL_CopyString("../");
 
 	Objects._size = 0;
 
