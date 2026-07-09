@@ -19,29 +19,29 @@ struct UnrealPath
 	char* Ext;
 };
 
+// ИСПРАВЛЕНИЕ: Добавлена полная поддержка любого регистра расширений файлов пакетов игры
 UnrealPath Paths[] = {
 	//{ "System", "u" },
 	{ "Maps", "unr" },
+	{ "Maps", "UNR" },
 	{ "SysTextures", "utx" },
+	{ "SysTextures", "UTX" },
 	{ "Textures", "utx" },
+	{ "Textures", "UTX" },
 	//{ "Sounds", "uax" },
 	//{ "Music", "umx" }, // it's "ogg"
 	{ "StaticMeshes", "usx" },
+	{ "StaticMeshes", "USX" },
 	//{ "Animations", "ukx" },
 	{ 0, 0 }
 };
 
 void UPackageManager::Init(char* BaseDir)
 {
-	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Игнорируем относительный BaseDir, который передает программа,
-	// и жестко задаем абсолютный путь к корню вашей папки с игрой.
-	// Обязательно используем прямые слэши '/' и закрывающий слэш в конце.
+	// ИСПРАВЛЕНИЕ: Жестко заданный абсолютный путь к корню вашей папки с игрой
 	m_BaseDir = UTIL_CopyString("G:/!!!_L2_Clients/542/l2mapper-0.7/");
 
 	Objects._size = 0;
-
-	//Objects = new UObject*[UPKG_HASHSIZE];
-	//memset(Objects, 0, UPKG_HASHSIZE * sizeof(UObject*));
 
 	char PathStr[CM_SYSTEM_MAXNAME];
 	char ExtStr[CM_SYSTEM_MAXNAME];
@@ -60,7 +60,6 @@ void UPackageManager::Init(char* BaseDir)
 
 		for (uint32 i = 0; i < Files.Size(); i++)
 		{
-
 			Package = new UPackage();
 			Package->PkgMgr = this;
 			sprintf(FileStr, "%s%s", PathStr, Files[i]);
@@ -94,18 +93,6 @@ UObject* UPackageManager::GetUObject(char* name)
 	char* tname = UTIL_CopyString(name);
 	char* ObjectAbsoluteName = UTIL_CopyString(name);
 	uint32 Hash = MakeHash(tname);
-	//if(Objects[Hash] != 0)
-	//	return Objects[Hash];
-	/*for(uint32 i = 0; i < Objects.Size(); i++)
-	{
-		if(Objects[i]->Hash != 0 && Objects[i]->Hash == Hash)
-			return Objects[i];
-	}*/
-	/*for(uint32 i = 0; i < Objects.Size(); i++)
-	{
-		if(Objects[i]->ObjectName != 0 && UTIL_strcmpi(Objects[i]->ObjectName, ObjectAbsoluteName) == 0)
-			return Objects[i];
-	}*/
 
 	char* PackageName = tname;
 	char* ObjectName = tname;
@@ -132,16 +119,7 @@ UObject* UPackageManager::GetUObject(char* name)
 			}
 
 			UObject* Result = 0;
-
 			Result = pkg->GetUObject(ObjectName);
-
-			//Objects[Hash] = Result;
-			/*if(Result != 0)
-			{
-				Result->Hash = Hash;
-				Result->ObjectName = ObjectAbsoluteName;
-				Objects.add(Result);
-			}*/
 
 			return Result;
 		}
@@ -153,7 +131,6 @@ UObject* UPackageManager::GetUObject(char* name)
 ULevel* UPackageManager::GetULevel(char* name)
 {
 	ULevel* Result = 0;
-
 	UPackage* LevelPkg = GetUPackage(name);
 
 	if (!LevelPkg)
@@ -175,15 +152,6 @@ uint32 UPackageManager::MakeHash(char* Name)
 {
 	uint64 Hash = 57821394;
 	uint64 Len = strlen(Name);
-	/*Hash ^= Len << 5;
-
-	for(uint64 i = 0; i < Len; i++)
-	{
-		uint64 ch = tolower(Name[i]);
-		//Hash ^= (ch << 2) ^ i << 3;
-		Hash = (Hash * (ch ^ (i << 2))) % UPKG_HASHSIZE;
-	}*/
-
 	Hash = UTIL_32BitChecksum(Name, Len);
 
 	return Hash;

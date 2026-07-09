@@ -250,7 +250,7 @@ void L2UIMap::onMapTileLoadClick(MyGUI::Widget* sender)
 void L2UIMap::onMapTileHideClick(MyGUI::Widget* sender)
 {
 }
-
+/*
 void L2UIMap::setTileState(int x, int y, int16 state)
 {
 	tileStates[x][y] = state;
@@ -267,29 +267,29 @@ void L2UIMap::setTileState(int x, int y, int16 state)
 	{
 		if (state & L2UIMTS_SELECTED)
 		{
-			ui_mapTiles[x][y]->setImageTexture("textures/mapTile_selected.png");
+			//ui_mapTiles[x][y]->setImageTexture("textures/mapTile_selected.png");
 		}
 		else
 		{
-			ui_mapTiles[x][y]->setImageTexture("textures/mapTile_active.png");
+			//ui_mapTiles[x][y]->setImageTexture("textures/mapTile_active.png");
 		}
 	}
 	else if (state & L2UIMTS_LOADED)
 	{
 		if (state & L2UIMTS_SELECTED)
 		{
-			ui_mapTiles[x][y]->setImageTexture("textures/mapTile_selected.png");
+			//ui_mapTiles[x][y]->setImageTexture("textures/mapTile_selected.png");
 		}
 		else
 		{
-			ui_mapTiles[x][y]->setImageTexture("textures/mapTile_loaded.png");
+			//ui_mapTiles[x][y]->setImageTexture("textures/mapTile_loaded.png");
 		}
 	}
 	else
 	{
 		if (state & L2UIMTS_SELECTED)
 		{
-			ui_mapTiles[x][y]->setImageTexture("textures/mapTile_selected.png");
+			//ui_mapTiles[x][y]->setImageTexture("textures/mapTile_selected.png");
 		}
 		else
 		{
@@ -297,6 +297,64 @@ void L2UIMap::setTileState(int x, int y, int16 state)
 		}
 	}
 }
+*/
+
+void L2UIMap::setTileState(int x, int y, int16 state)
+{
+	tileStates[x][y] = state;
+
+	// КРИТИЧЕСКАЯ ЗАЩИТА: Если графический элемент MyGUI для этих координат 
+	// не был создан в методе Init(), мы НЕМЕДЛЕННО выходим из функции.
+	if (ui_mapTiles == nullptr || ui_mapTiles[x] == nullptr || ui_mapTiles[x][y] == nullptr)
+	{
+		return;
+	}
+
+	// Безопасный блок отслеживания внутренних ошибок MyGUI при загрузке текстур с диска
+	try
+	{
+		if (state & L2UIMTS_ACTIVE)
+		{
+			if (state & L2UIMTS_SELECTED)
+			{
+				ui_mapTiles[x][y]->setImageTexture("G:/!!!_L2_Clients/542/l2mapper-0.7/build/textures/mapTile_selected.png");
+			}
+			else
+			{
+				ui_mapTiles[x][y]->setImageTexture("G:/!!!_L2_Clients/542/l2mapper-0.7/build/textures/mapTile_active.png");
+			}
+		}
+		else if (state & L2UIMTS_LOADED)
+		{
+			if (state & L2UIMTS_SELECTED)
+			{
+				ui_mapTiles[x][y]->setImageTexture("G:/!!!_L2_Clients/542/l2mapper-0.7/build/textures/mapTile_selected.png");
+			}
+			else
+			{
+				ui_mapTiles[x][y]->setImageTexture("G:/!!!_L2_Clients/542/l2mapper-0.7/build/textures/mapTile_loaded.png");
+			}
+		}
+		else
+		{
+			if (state & L2UIMTS_SELECTED)
+			{
+				ui_mapTiles[x][y]->setImageTexture("G:/!!!_L2_Clients/542/l2mapper-0.7/build/textures/mapTile_selected.png");
+			}
+			else
+			{
+				ui_mapTiles[x][y]->setImageTexture("");
+			}
+		}
+	}
+	catch (...)
+	{
+		// Если файла по абсолютному пути всё равно нет, программа продолжит работу без вылета
+		OutputDebugStringA("Ошибка MyGUI: Не удалось загрузить текстуру плитки по указанному абсолютному пути.\n");
+	}
+}
+
+
 
 int16 L2UIMap::getTileState(int x, int y)
 {

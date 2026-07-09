@@ -2,6 +2,8 @@
 
 #include "../main.h"
 #include "L2UIMap.h"
+#include "L2UIBusyScreen.h"
+#include "../L2Lib/UPackageManager.h" // ИСПРАВЛЕНИЕ: Подключение менеджера пакетов для чтения списка карт
 
 L2UIEditor::L2UIEditor()
 	: L2UIBaseWidget()
@@ -18,19 +20,57 @@ void L2UIEditor::Init()
 	ui_topMenu->setAlign(MyGUI::Align::HStretch | MyGUI::Align::Top);
 	MyGUI::MenuItemPtr ui_topMenu_Main = ui_topMenu->addItem(L"Menu", MyGUI::MenuItemType::Popup);
 	MyGUI::PopupMenuPtr ui_topMenu_MainMenu = ui_topMenu_Main->createItemChildT<MyGUI::PopupMenu>();
-	MyGUI::MenuItem * ui_topMenu_Main_Map = ui_topMenu_MainMenu->addItem(L"Map", MyGUI::MenuItemType::Normal, "TopMenu_Main_ShowMap");
+	MyGUI::MenuItem* ui_topMenu_Main_Map = ui_topMenu_MainMenu->addItem(L"Map", MyGUI::MenuItemType::Normal, "TopMenu_Main_ShowMap");
 	ui_topMenu_Main_Map->eventMouseButtonClick += MyGUI::newDelegate(this, &L2UIEditor::onTopMenu_Main_ShowMap);
 	ui_topMenu_MainMenu->addItem("", MyGUI::MenuItemType::Separator);
 	ui_topMenu_MainMenu->addItem(L"Exit", MyGUI::MenuItemType::Normal, "TopMenu_Main_Exit");
 	ui_leftPanel = MyGUI::Gui::getInstance().createWidget<MyGUI::ImageBox>("ImageBox", 0, 22, 40, 300, MyGUI::Align::Default, "L2Editor", "LeftPanel");
 	ui_leftPanel->setAlign(MyGUI::Align::Left | MyGUI::Align::VStretch);
 	ui_leftPanel->setProperty("ImageTexture", "ui_leftPanelBg.png");
-	MyGUI::Button *btn1 = ui_leftPanel->createWidget<MyGUI::Button>("Button", 4, 6, 32, 32, MyGUI::Align::Default, "btn1");
+	MyGUI::Button* btn1 = ui_leftPanel->createWidget<MyGUI::Button>("Button", 4, 6, 32, 32, MyGUI::Align::Default, "btn1");
 	btn1->eventMouseButtonClick += MyGUI::newDelegate(this, &L2UIEditor::onBtn1MouseClick);
 
 	ui_sceneShowBsp = MyGUI::Gui::getInstance().createWidget<MyGUI::Button>("CheckBox", 45, 27, 150, 20, MyGUI::Align::Default, "L2Editor", "ShowBsp");
 	ui_sceneShowBsp->setCaption(L"Draw BSP");
 	ui_sceneShowBsp->eventMouseButtonClick += MyGUI::newDelegate(this, &L2UIEditor::onShowBspMouseClick);
+
+	// ИСПРАВЛЕНИЕ: Инициализация выпадающего списка карт (ComboBox) правее чекбокса BSP
+	ui_comboMaps = MyGUI::Gui::getInstance().createWidget<MyGUI::ComboBox>(
+		"ComboBox", 220, 25, 180, 24, MyGUI::Align::Left | MyGUI::Align::Top, "L2Editor", "ComboMaps"
+	);
+
+	//ui_comboMaps->setComboModeWithoutInput(true); // Только выбор элементов мышкой, без ручного ввода
+	ui_comboMaps->setEditReadOnly(true);
+	//ui_comboMaps->setComboPageLength(10); // Ограничит высоту выпадающего списка до 10 элементов со скроллом
+
+	ui_comboMaps->setCaption(L"Выберите карту...");
+
+	// Наполнение списка именами файлов из зарегистрированных в UPackageManager пакетов
+	for (uint32 i = 0; i < UPackageMgr.Packages.Size(); i++)
+	{
+		std::string fileAddr = UPackageMgr.Packages[i]->m_FileAddr;
+		// Отфильтровываем, берём только игровые .unr пакеты из директории Maps
+		if (fileAddr.find("Maps") != std::string::npos || fileAddr.find("maps") != std::string::npos)
+		{
+			ui_comboMaps->addItem(UPackageMgr.Packages[i]->Name());
+		}
+	}
+
+/*
+	// ИСПРАВЛЕНИЕ: Прямое обращение через точку к глобальному объекту UPackageMgr
+	for (uint32 i = 0; i < UPackageMgr.Packages.Size(); i++)
+	{
+		std::string fileAddr = UPackageMgr.Packages[i]->m_FileAddr;
+		if (fileAddr.find("Maps") != std::string::npos || fileAddr.find("maps") != std::string::npos)
+		{
+			ui_comboMaps->addItem(UPackageMgr.Packages[i]->Name());
+		}
+	}
+*/
+
+
+	// Привязка события выбора карты к нашему новому методу
+	ui_comboMaps->eventComboAccept += MyGUI::newDelegate(this, &L2UIEditor::onComboMapAccept);
 
 	/*ui_propertyPanel = mGUI->createWidget<MyGUI::TabControl>("TabControl", 0, 24, 300, 500, MyGUI::Align::Default, "Main", "PropertyPanel");
 	//ui_propertyPanel->setAlign(MyGUI::Align::Right | MyGUI::Align::VStretch);
@@ -92,14 +132,44 @@ void L2UIEditor::onTopMenu_Main_ShowMap(MyGUI::Widget* sender)
 	g_ui.getL2Map()->setVisible(true);
 }
 
+// ИСПРАВЛЕНИЕ: Новый метод логики переключения секторов через выпадающий список
+void L2UIEditor::onComboMapAccept(MyGUI::ComboBox* _sender, size_t _index)
+{
+	if (_index == MyGUI::ITEM_NONE) return;
+
+	std::string mapName = _sender->getItemNameAt(_index);
+
+	int map_x = 0;
+	int map_y = 0;
+	// Депарсим текстовое имя вида "22_22" в чистые координаты секторов
+	if (sscanf(mapName.c_str(), "%d_%d", &map_x, &map_y) == 2)
+	{
+		jfArray<L2MapTileInfo*, uint16>* tiles = new jfArray<L2MapTileInfo*, uint16>();
+		L2MapTileInfo* tileInfo = new L2MapTileInfo();
+		tileInfo->map_x = map_x;
+		tileInfo->map_y = map_y;
+		tiles->add(tileInfo);
+
+		// Загружаем сетку геодаты
+		g_geo.Load(map_x, map_y);
+
+		// Вызываем стандартный экран ожидания загрузки
+		g_ui.getL2BusyScreen()->setMessage(L"Loading map from quick menu...");
+		g_ui.getL2BusyScreen()->setVisible(true);
+
+		// Передаем команду на пересборку 3D-мира
+		g_levelMgr.loadTiles(tiles);
+	}
+}
+
 void L2UIEditor::onBtn1MouseClick(MyGUI::Widget* sender)
 {
-	char *terrain_vert_shader;
-	char *terrain_frag_shader;
+	char* terrain_vert_shader;
+	char* terrain_frag_shader;
 
 	uint32 t, fend;
 
-	FILE *sh_file = fopen("data/shaders/terrain.vert", "rb");
+	FILE* sh_file = fopen("data/shaders/terrain.vert", "rb");
 	t = ftell(sh_file);
 	fseek(sh_file, 0, SEEK_END);
 	fend = ftell(sh_file);

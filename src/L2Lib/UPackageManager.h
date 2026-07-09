@@ -14,6 +14,8 @@ public:
 	ULevel *GetULevel(char *name);
 	uint32 MakeHash(char *Name);
 
+	jfArray<UPackage*, uint32> Packages;
+
 	/*static UPackageManager *get_instance()
 	{
 		if(!theInstance)
@@ -25,7 +27,6 @@ private:
 
 	char *m_BaseDir;
 
-	jfArray<UPackage*, uint32> Packages;
 	jfArray<UObject*, uint32> Objects;
 public:
 	UPackageManager(void);

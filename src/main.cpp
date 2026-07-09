@@ -66,6 +66,19 @@ void main::MainLoop()
 
 	g_ui.update();
 
+
+	// ИСПРАВЛЕНИЕ: Вывод координат камеры l2mapper для телепортации в игру
+	char coordsBuf[256];
+	// g_camera.getPos() возвращает вектор положения (x, y, z)
+	sprintf(coordsBuf, "L2 Content Editor v0.1 | X: %.0f | Y: %.0f | Z: %.0f",
+		g_camera.getPos().x,
+		g_camera.getPos().y,
+		g_camera.getPos().z);
+
+	// Обновляем текст в заголовке окна программы
+	SetWindowTextA(g_window.getHWND(), coordsBuf);
+
+
 	SwapBuffers(g_window.getDC());
 
 	//Sleep(1000);
